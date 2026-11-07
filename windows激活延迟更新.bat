@@ -1,136 +1,144 @@
 @echo off
-chcp 65001 >nul
-title ç³»ç»Ÿæ¿€æ´»ä¸Žæ›´æ–°æŽ§åˆ¶ç¨‹åº
+setlocal EnableExtensions EnableDelayedExpansion
+chcp 936 >nul 2>&1
+title ÏµÍ³¼¤»îÓë¸üÐÂ¿ØÖÆ³ÌÐò
 color 0A
 
-:: ç®¡ç†å‘˜æƒé™æ£€æŸ¥
->nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
-if '%errorlevel%' NEQ '0' (
-    echo è¯·å³é”®ä»¥ç®¡ç†å‘˜èº«ä»½è¿è¡Œï¼
+:: ============================================================
+::  ³£Á¿¶¨Òå
+::  UXKEY   : ÉèÖÃ½çÃæ¶ÁÈ¡µÄÔÝÍ£¸üÐÂÊ±¼ä´Á£¨ÐÂ¾É½çÃæ¹²ÓÃ£©
+::  POLKEY  : ¹Ù·½ÑÓÆÚ²ßÂÔÓë°æ±¾Ëø¶¨
+::  LEGAKEY : ¾É°æ½Å±¾Ð´ÈëµÄ×´Ì¬¼ü£¨ÇåÀíÓÃ£©
+::  CFGKEY  : ¾É°æ×Ô½¨ÅäÖÃ¼ü£¨½öÓÃÓÚÇåÀí²ÐÁô£©
+:: ============================================================
+set "UXKEY=HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings"
+set "POLKEY=HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+set "LEGAKEY=HKLM\SOFTWARE\Microsoft\WindowsUpdate\UpdatePolicy\Settings"
+set "CFGKEY=HKLM\SOFTWARE\WinOpt\UpdateDelay"
+
+:: ============================================================
+::  ÏµÍ³°æ±¾Óë°æ±¾ÐÍºÅ¼ì²â£¨Ö»¶Á£¬ÏÈÓÚÈÎºÎÈ¨ÏÞ¼ì²é£©
+:: ============================================================
+set "BUILD=0"
+for /f "tokens=3" %%V in ('reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v CurrentBuild 2^>nul ^| findstr /i "CurrentBuild"') do set "BUILD=%%V"
+set "EDITION=Unknown"
+for /f "tokens=3" %%V in ('reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v EditionID 2^>nul ^| findstr /i "EditionID"') do set "EDITION=%%V"
+set "ISHOME=0"
+echo(!EDITION!| findstr /i "Core" >nul && set "ISHOME=1"
+set "DISPVER="
+for /f "tokens=3" %%V in ('reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v DisplayVersion 2^>nul ^| findstr /i "DisplayVersion"') do set "DISPVER=%%V"
+
+
+:: ============================================================
+::  ¹ÜÀíÔ±È¨ÏÞ¼ì²é (net session ÔÚ Win10/11 È«°æ±¾¿ÉÓÃ, Ìæ´úÒÑÆúÓÃµÄ cacls)
+:: ============================================================
+net session >nul 2>&1
+if errorlevel 1 (
+    echo.
+    echo   [È¨ÏÞ²»×ã] ÇëÓÒ¼üÑ¡Ôñ¡¸ÒÔ¹ÜÀíÔ±Éí·ÝÔËÐÐ¡¹ºóÖØÊÔ¡£
+    echo.
     pause
-    exit
+    exit /b 1
 )
 
 :main
 cls
 echo ========================================
-echo       ç³»ç»Ÿæ¿€æ´»ä¸Žæ›´æ–°æŽ§åˆ¶ç¨‹åº
+echo       ÏµÍ³¼¤»îÓë¸üÐÂ¿ØÖÆ³ÌÐò
 echo ========================================
 echo.
-echo è¯·é€‰æ‹©æ“ä½œï¼š
+echo   1. ¼¤»îWindowsºÍOffice
 echo.
-echo   1. æ¿€æ´»Windowså’ŒOffice
+echo   2. Windows¸üÐÂ¿ØÖÆ
 echo.
-echo   2. Windowsæ›´æ–°æŽ§åˆ¶
+echo   3. ÍË³ö³ÌÐò
 echo.
-echo   3. é€€å‡ºç¨‹åº
-echo.
-echo ========================================
-set /p choice=è¯·è¾“å…¥é€‰æ‹©ï¼ˆ1-3ï¼‰: 
+echo --------------------------------------------------------
+echo    µ±Ç°ÏµÍ³: !EDITION!  ÄÚ²¿°æ±¾: !BUILD!
+echo ========================================================
+choice /c 123 /n /m "ÇëÊäÈëÑ¡Ôñ£¨1-3£©: "
+if errorlevel 3 goto exit
+if errorlevel 2 goto update_menu
+goto activate_menu
 
-if "%choice%"=="1" goto activate_windows_office
-if "%choice%"=="2" goto windows_pause_update
-if "%choice%"=="3" goto exit
-echo è¾“å…¥æ— æ•ˆï¼Œè¯·é‡æ–°è¾“å…¥ï¼
-timeout /t 2 >nul
-goto main
-
-:activate_windows_office
+:: ============================================================
+::  Ò»¡¢¼¤»îÏà¹Ø£¨¹¦ÄÜ±£³ÖÔ­Ñù£¬½öÐÞÕý¼æÈÝÐÔÈ±ÏÝ£©
+:: ============================================================
+:activate_menu
 cls
-echo ========================================
-echo       Windowså’ŒOfficeæ¿€æ´»
-echo ========================================
+echo ========================================================
+echo              Windows ºÍ Office ¼¤»î
+echo ========================================================
 echo.
-echo è­¦å‘Šï¼šæ­¤æ“ä½œéœ€è¦è”ç½‘ï¼
+echo    ¾¯¸æ£ºÑ¡Ïî 1 / 2 ÐèÒªÁªÍø£¬²¢»á´ò¿ªµÚÈý·½Õ¾µã¡£
+echo    µÚÈý·½¼¤»î¹¤¾ß´æÔÚºÏ¹æÓë°²È«·çÏÕ£¬½¨ÒéÓÅÏÈÊ¹ÓÃÕý°æÊÚÈ¨¡£
 echo.
-echo è¯·é€‰æ‹©æ¿€æ´»æ–¹å¼ï¼š
+echo    1. ÃüÁîÐÐ¼¤»î£¨ÁªÍø£©
+echo    2. HEU ¼¤»î
+echo    3. ²é¿´¼¤»î×´Ì¬
+echo    4. ·µ»ØÖ÷²Ëµ¥
 echo.
-echo   1. å‘½ä»¤è¡Œæ¿€æ´»ï¼ˆè”ç½‘ï¼‰
-echo.
-echo   2. HEUæ¿€æ´»
-echo.
-echo   3. æŸ¥çœ‹æ¿€æ´»çŠ¶æ€
-echo.
-echo   4. è¿”å›žä¸»èœå•
-echo.
-echo ========================================
-set /p activate_choice=è¯·è¾“å…¥é€‰æ‹©ï¼ˆ1-3ï¼‰: 
-
-if "%activate_choice%"=="1" goto irm
-if "%activate_choice%"=="2" goto heu
-if "%activate_choice%"=="3" goto windows_states
-if "%activate_choice%"=="4" goto main
-echo è¾“å…¥æ— æ•ˆï¼Œè¯·é‡æ–°è¾“å…¥ï¼
-timeout /t 2 >nul
-goto activate_windows_office
+echo ========================================================
+choice /c 1234 /n /m "ÇëÊäÈëÑ¡Ôñ 1-4: "
+if errorlevel 4 goto main
+if errorlevel 3 goto windows_states
+if errorlevel 2 goto heu
+goto irm
 
 :irm
 cls
-echo ========================================
-echo       Windowså’ŒOfficeæ¿€æ´»è„šæœ¬ï¼ˆè”ç½‘ï¼‰
-echo ========================================
+echo ========================================================
+echo            Windows ºÍ Office ¼¤»î½Å±¾£¨ÁªÍø£©
+echo ========================================================
 echo.
-echo æ­£åœ¨æ‰“å¼€è„šæœ¬ä¸‹è½½åœ°å€...
-echo è¯·ç¡®ä¿ç½‘ç»œè¿žæŽ¥æ­£å¸¸...
-echo.
+echo  ÕýÔÚ´ò¿ª½Å±¾ÏÂÔØµØÖ·£¬ÇëÈ·±£ÍøÂçÁ¬½ÓÕý³£...
 start "" "https://massgrave.dev/"
 echo.
-timeout /t -1 
+echo  °´ÈÎÒâ¼ü·µ»ØÖ÷²Ëµ¥...
+pause >nul
 goto main
 
 :heu
 cls
-echo ========================================
-echo       heuæ¿€æ´»è½¯ä»¶ï¼ˆæ”¯æŒç¦»çº¿ï¼‰
-echo ========================================
+echo ========================================================
+echo              HEU ¼¤»îÈí¼þ£¨Ö§³ÖÀëÏß£©
+echo ========================================================
 echo.
-echo æ‰“å¼€è½¯ä»¶ç½‘å€...
+echo  ´ò¿ªÈí¼þÍøÖ·...
 start "" "https://github.com/zbezj/HEU_KMS_Activator"
-echo å¤‡ç”¨ç½‘å€
-echo åœ°å€1ï¼šhttps://wwi.lanzoup.com/b05gumbe å¯†ç :9xum 
-echo åœ°å€2ï¼šhttps://pan.baidu.com/s/14U3zIG4tG6ZdMBrHaPaLzw?pwd=c65c
-echo åœ°å€3ï¼šhttps://github.com/zbezj/HEU_KMS_Activator/releases 
-echo è“å¥äº‘é“¾æŽ¥ç»å¸¸ä¼šå¤±æ•ˆï¼ŒæŠŠé“¾æŽ¥ä¸­çš„lanzoupä¿®æ”¹ä¸ºï¼šlanzouhã€lanzousã€lanzousiã€lanzouxã€lanzouwã€lanzouoã€lanzouyï¼Œå¤šå°è¯•å‡ ä¸ªï¼Œå°±èƒ½æ‰“å¼€äº†ã€‚
+echo  ±¸ÓÃÍøÖ·
+echo  µØÖ·1£ºhttps://wwi.lanzoup.com/b05gumbe ÃÜÂë:9xum
+echo  µØÖ·2£ºhttps://pan.baidu.com/s/14U3zIG4tG6ZdMBrHaPaLzw?pwd=c65c
+echo  µØÖ·3£ºhttps://github.com/zbezj/HEU_KMS_Activator/releases
+echo  À¶×àÔÆÁ´½Ó¾­³£»áÊ§Ð§£¬¿É°ÑÁ´½ÓÖÐµÄ lanzoup ÒÀ´ÎÌæ»»Îª
+echo  lanzouh¡¢lanzous¡¢lanzousi¡¢lanzoux¡¢lanzouw¡¢lanzouo¡¢lanzouy ÖØÊÔ¡£
 echo.
-timeout /t -1 
+echo  °´ÈÎÒâ¼ü·µ»ØÖ÷²Ëµ¥...
+pause >nul
 goto main
 
 :windows_states
 cls
-title æ¿€æ´»çŠ¶æ€æŸ¥è¯¢å·¥å…·
-cls
-
-echo ============================================
-echo           æ¿€æ´»çŠ¶æ€æŸ¥è¯¢å·¥å…·
-echo ============================================
+title ¼¤»î×´Ì¬²éÑ¯¹¤¾ß
+echo ========================================================
+echo              ¼¤»î×´Ì¬²éÑ¯¹¤¾ß
+echo ========================================================
 echo.
-
-echo [1] Windowsæ¿€æ´»çŠ¶æ€
-echo --------------------------------------------
-echo æ­£åœ¨æŸ¥è¯¢Windowsæ¿€æ´»çŠ¶æ€...
+echo [1] Windows ¼¤»î×´Ì¬
+echo --------------------------------------------------------
+echo  ÓÀ¾Ã¼¤»î×´Ì¬:
+cscript //nologo "%SYSTEMROOT%\system32\slmgr.vbs" -xpr
 echo.
-
-echo æ°¸ä¹…æ¿€æ´»çŠ¶æ€:
-cscript //nologo slmgr.vbs -xpr
+echo  ¼¤»îÏêÏ¸ÐÅÏ¢:
+cscript //nologo "%SYSTEMROOT%\system32\slmgr.vbs" -dli
 echo.
-
-echo æ¿€æ´»è¯¦ç»†ä¿¡æ¯:
-cscript //nologo slmgr.vbs -dli
+echo  °²×° ID:
+cscript //nologo "%SYSTEMROOT%\system32\slmgr.vbs" /dti
 echo.
-
-echo å®Œæ•´äº§å“å¯†é’¥:
-for /f "tokens=2 delims=:" %%i in ('cscript //nologo slmgr.vbs /dlv 2^>nul ^| findstr /i "äº§å“å¯†é’¥é€šé“"') do echo %%i
-echo.
-
-echo å®‰è£…ID:
-cscript //nologo slmgr.vbs /dti
-echo.
-
-echo [2] Officeæ¿€æ´»çŠ¶æ€
-echo --------------------------------------------
+echo [2] Office ¼¤»î×´Ì¬
+echo --------------------------------------------------------
 set "office_path="
-
-:: ç®€åŒ–Officeæ£€æµ‹ - æŒ‰ç‰ˆæœ¬ä¼˜å…ˆçº§æ£€æµ‹
+set "office_ver="
 for %%v in (16 15 14) do (
     if not defined office_path (
         if exist "%ProgramFiles%\Microsoft Office\Office%%v\ospp.vbs" (
@@ -138,196 +146,221 @@ for %%v in (16 15 14) do (
             set "office_ver=Office%%v"
         ) else if exist "%ProgramFiles(x86)%\Microsoft Office\Office%%v\ospp.vbs" (
             set "office_path=%ProgramFiles(x86)%\Microsoft Office\Office%%v\ospp.vbs"
-            set "office_ver=Office%%v (32ä½)"
+            set "office_ver=Office%%v 32Î»"
         )
     )
 )
-
 if defined office_path (
-    echo æ£€æµ‹åˆ°%office_ver%...
+    echo  ¼ì²âµ½ !office_ver!...
     echo.
-    echo æ¿€æ´»çŠ¶æ€:
-    cscript //nologo "%office_path%" /dstatus | findstr /i "LICENSE STATUS\|Last 5\|Product Key Channel"
-    echo.
-    echo å®Œæ•´ä¿¡æ¯:
-    cscript //nologo "%office_path%" /dstatus
+    cscript //nologo "!office_path!" /dstatus | findstr /i /c:"LICENSE STATUS" /c:"Last 5" /c:"Product Key Channel"
 ) else (
-    echo æœªæ£€æµ‹åˆ°Officeæˆ–ç‰ˆæœ¬ä¸æ”¯æŒ
+    echo  Î´¼ì²âµ½ Office »ò°æ±¾²»Ö§³Ö
 )
 echo.
-
-echo [3] ç³»ç»Ÿä¿¡æ¯
-echo --------------------------------------------
-echo æ“ä½œç³»ç»Ÿç‰ˆæœ¬:
+echo [3] ÏµÍ³ÐÅÏ¢
+echo --------------------------------------------------------
+echo  ²Ù×÷ÏµÍ³°æ±¾:
 ver
 echo.
-
-echo ç³»ç»Ÿç±»åž‹:
-if "%PROCESSOR_ARCHITECTURE%"=="AMD64" (
-    echo 64ä½ç³»ç»Ÿ
-) else (
-    echo 32ä½ç³»ç»Ÿ
-)
+echo  ÏµÍ³ÀàÐÍ: %PROCESSOR_ARCHITECTURE%
 echo.
-
-echo äº§å“ID:
-wmic os get "SerialNumber" /value | findstr "SerialNumber"
+echo  ²úÆ· ID:
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v ProductId 2>nul | findstr /i "ProductId"
 echo.
-
-echo ============================================
-echo æ³¨æ„ï¼šæ¿€æ´»å¯†é’¥ä¿¡æ¯å±žäºŽæ•æ„Ÿæ•°æ®ï¼Œè¯·å¦¥å–„ä¿ç®¡
-echo ============================================
+echo ========================================================
+echo  ×¢Òâ£º¼¤»îÃÜÔ¿ÐÅÏ¢ÊôÓÚÃô¸ÐÊý¾Ý£¬ÇëÍ×ÉÆ±£¹Ü
+echo ========================================================
 echo.
-timeout /t -1 
+echo  °´ÈÎÒâ¼ü·µ»ØÖ÷²Ëµ¥...
+pause >nul
+title ÏµÍ³¼¤»îÓë¸üÐÂ¿ØÖÆ³ÌÐò
 goto main
 
-
-
-
-:windows_pause_update
+:: ============================================================
+::  ¶þ¡¢Windows ¸üÐÂ¿ØÖÆ
+:: ============================================================
+:update_menu
 cls
 echo ========================================
-echo           Windowsæ›´æ–°æŽ§åˆ¶
+echo                Windows ¸üÐÂ¿ØÖÆ
 echo ========================================
 echo.
-echo è¯·é€‰æ‹©æ“ä½œï¼š
+echo    1. ÉèÖÃÑÓ³Ù¸üÐÂ
+echo    2. »Ö¸´ Windows ¸üÐÂ
+echo    3. ²é¿´µ±Ç°¸üÐÂ×´Ì¬
+echo    4. ·µ»ØÖ÷²Ëµ¥
 echo.
-echo   1. æš‚åœæ›´æ–°36500å¤©ï¼ˆ100å¹´ï¼‰
-echo.
-echo   2. æ¢å¤Windowsæ›´æ–°
-echo.
-echo   3. è¿”å›žä¸»èœå•
-echo.
+echo ----------------------------------------
+echo    ¿ÉÉèÖÃ 1 - 36500 Ìì£¬Ò»´ÎÐ´Èë¼´ÉúÐ§¡£
 echo ========================================
-set /p update_choice=è¯·è¾“å…¥é€‰æ‹©ï¼ˆ1-3ï¼‰: 
+choice /c 1234 /n /m "ÇëÊäÈëÑ¡Ôñ 1-4: "
+if errorlevel 4 goto main
+if errorlevel 3 goto show_status
+if errorlevel 2 goto resume_update
+goto set_delay
 
-if "%update_choice%"=="1" goto pause_update
-if "%update_choice%"=="2" goto resume_update
-if "%update_choice%"=="3" goto main
-echo è¾“å…¥æ— æ•ˆï¼Œè¯·é‡æ–°è¾“å…¥ï¼
-timeout /t 2 >nul
-goto windows_pause_update
-
-:pause_update
+:: ------------------------------------------------------------
+::  ÉèÖÃÑÓ³Ù¸üÐÂ
+:: ------------------------------------------------------------
+:set_delay
 cls
 echo ========================================
-echo           æš‚åœæ›´æ–°è®¾ç½®
+echo                ÉèÖÃÑÓ³Ù¸üÐÂ
 echo ========================================
 echo.
-echo æ­£åœ¨è®¾ç½®æ³¨å†Œè¡¨é¡¹...
-reg add "HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" /v "FlightSettingsMaxPauseDays" /t REG_DWORD /d 36500 /f >nul
-reg add "HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" /v "PauseFeatureUpdates" /t REG_DWORD /d 1 /f >nul
-reg add "HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" /v "PauseQualityUpdates" /t REG_DWORD /d 1 /f >nul
-reg delete "HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" /v "PauseUpdatesExpiryTime" /f >nul 2>&1
+:set_delay_input
+set "DAYS="
+set /p "DAYS=  ÑÓ³Ù¸üÐÂÌìÊý£¨1-36500£¬»Ø³µ·µ»Ø£©: "
+if not defined DAYS goto update_menu
+echo(!DAYS!| findstr /r "^[1-9][0-9]*$" >nul
+if errorlevel 1 (
+    echo   ÊäÈëÎÞÐ§£¬ÇëÊäÈëÊý×Ö¡£
+    goto set_delay_input
+)
+if !DAYS! GTR 36500 (
+    echo   ³¬³ö·¶Î§£¬ÇëÊäÈë 1 - 36500¡£
+    goto set_delay_input
+)
 
-:: è®¾ç½®æ›´æ–°ç­–ç•¥
-reg add "HKLM\SOFTWARE\Microsoft\WindowsUpdate\UpdatePolicy\Settings" /v "PausedFeatureStatus" /t REG_DWORD /d 1 /f >nul
-reg add "HKLM\SOFTWARE\Microsoft\WindowsUpdate\UpdatePolicy\Settings" /v "PausedQualityStatus" /t REG_DWORD /d 1 /f >nul
+choice /c YN /n /m "  È·¶¨ÑÓ³Ù !DAYS! ÌìÂð£¨Y È·¶¨ / N ÖØÌî£©: "
+if errorlevel 2 goto set_delay
 
-echo æ­£åœ¨åœæ­¢æ›´æ–°æœåŠ¡...
-net stop wuauserv >nul 2>&1
-net stop UsoSvc >nul 2>&1
-sc config wuauserv start= disabled >nul 2>&1
-sc config UsoSvc start= disabled >nul 2>&1
+:: Ò»´ÎÐÔÐ´ÈëÄ¿±ê½ØÖ¹ÈÕ = µ±Ç° UTC + N Ìì£¬²»½¨Á¢ÈÎºÎºóÌ¨ÈÎÎñ
+set /a MAXPAUSE=DAYS
+if !MAXPAUSE! LSS 35 set /a MAXPAUSE=35
+if !MAXPAUSE! GTR 3650 set /a MAXPAUSE=3650
+set /a DEFERFEAT=DAYS
+if !DEFERFEAT! GTR 365 set /a DEFERFEAT=365
+set /a DEFERQUAL=DAYS
+if !DEFERQUAL! GTR 30 set /a DEFERQUAL=30
 
+call :clear_legacy
+powershell.exe -NoProfile -NonInteractive -Command "$ErrorActionPreference='Stop'; $n=[DateTime]::UtcNow; $f='yyyy-MM-ddTHH:mm:ssZ'; $ux='HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings'; if (-not (Test-Path $ux)) { [void](New-Item -Path $ux -Force) }; $s=$n.ToString($f); $e=$n.AddDays(!DAYS!).ToString($f); foreach($v in 'PauseUpdatesStartTime','PauseFeatureUpdatesStartTime','PauseQualityUpdatesStartTime') { Set-ItemProperty -Path $ux -Name $v -Value $s -Type String }; foreach($v in 'PauseUpdatesExpiryTime','PauseFeatureUpdatesEndTime','PauseQualityUpdatesEndTime') { Set-ItemProperty -Path $ux -Name $v -Value $e -Type String }; exit 0"
+if errorlevel 1 (
+    echo   Ð´ÈëÊ§°Ü£¬ÇëÒÔ¹ÜÀíÔ±Éí·ÝÖØÐÂÔËÐÐ¡£
+    echo.
+    pause
+    goto update_menu
+)
+reg add "%UXKEY%" /v FlightSettingsMaxPauseDays /t REG_DWORD /d !MAXPAUSE! /f >nul 2>&1
+
+:: ¹Ù·½ÑÓÆÚ²ßÂÔ£¨¼ÒÍ¥°æ / ¾É°æ±¾Ìø¹ý£©
+if !ISHOME! EQU 1 goto skip_wufb
+if !BUILD! LSS 14393 goto skip_wufb
+reg add "%POLKEY%" /v DeferFeatureUpdates /t REG_DWORD /d 1 /f >nul 2>&1
+reg add "%POLKEY%" /v DeferFeatureUpdatesPeriodInDays /t REG_DWORD /d !DEFERFEAT! /f >nul 2>&1
+reg add "%POLKEY%" /v DeferQualityUpdates /t REG_DWORD /d 1 /f >nul 2>&1
+reg add "%POLKEY%" /v DeferQualityUpdatesPeriodInDays /t REG_DWORD /d !DEFERQUAL! /f >nul 2>&1
+:skip_wufb
+
+:: Ëø¶¨µ±Ç°ÏµÍ³°æ±¾£¬²»½ÓÊÕ¹¦ÄÜ¸üÐÂ
+if !ISHOME! EQU 1 goto skip_pin
+if not defined DISPVER goto skip_pin
+reg add "%POLKEY%" /v TargetReleaseVersion /t REG_DWORD /d 1 /f >nul 2>&1
+reg add "%POLKEY%" /v TargetReleaseVersionInfo /t REG_SZ /d "!DISPVER!" /f >nul 2>&1
+:skip_pin
+
+call :repair_services
+net start wuauserv >nul 2>&1
+net start bits >nul 2>&1
+gpupdate /target:computer /force /wait:20 >nul 2>&1
+
+cls
 color 2F
 echo ========================================
-echo  å·²æš‚åœæ›´æ–°100å¹´ï¼ˆ36500å¤©ï¼‰ï¼
+echo                  ÉèÖÃÍê³É
 echo ========================================
 echo.
-echo æ³¨æ„ï¼šæ›´æ–°æœåŠ¡å·²ç¦ç”¨
+echo    ÑÓ³Ù¸üÐÂÌìÊý : !DAYS! Ìì
+echo    ¸üÐÂ·þÎñ     : ±£³ÖÕý³£
 echo.
-timeout /t 3 >nul
+echo    ´ò¿ª¡¸ÉèÖÃ ¡ú Windows ¸üÐÂ¡¹¿É²é¿´ÔÝÍ£ÈÕÆÚ¡£
+echo    ÐèÒªÌáÇ°»Ö¸´ÇëÓÃ²Ëµ¥ 2¡£
+echo ========================================
+echo.
+echo  °´ÈÎÒâ¼ü·µ»Ø...
+pause >nul
 color 0A
+goto update_menu
 
-:after_pause
-cls
-echo ========================================
-echo           æ“ä½œå®Œæˆ
-echo ========================================
-echo.
-echo è¯·é€‰æ‹©ä¸‹ä¸€æ­¥æ“ä½œï¼š
-echo.
-echo   1. è¿”å›žæ›´æ–°æŽ§åˆ¶èœå•
-echo.
-echo   2. è¿”å›žä¸»èœå•
-echo.
-echo   3. é€€å‡ºç¨‹åº
-echo.
-echo ========================================
-set /p next_choice=è¯·è¾“å…¥é€‰æ‹©ï¼ˆ1-3ï¼‰: 
-
-if "%next_choice%"=="1" goto windows_pause_update
-if "%next_choice%"=="2" goto main
-if "%next_choice%"=="3" goto exit
-echo è¾“å…¥æ— æ•ˆï¼Œè¯·é‡æ–°è¾“å…¥ï¼
-timeout /t 2 >nul
-goto after_pause
-
+:: ------------------------------------------------------------
+::  »Ö¸´ Windows ¸üÐÂ
+:: ------------------------------------------------------------
 :resume_update
 cls
 echo ========================================
-echo           æ¢å¤æ›´æ–°è®¾ç½®
+echo              »Ö¸´ Windows ¸üÐÂ
 echo ========================================
 echo.
-echo æ­£åœ¨æ¸…é™¤æ³¨å†Œè¡¨é¡¹...
-reg delete "HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" /v "FlightSettingsMaxPauseDays" /f >nul 2>&1
-reg delete "HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" /v "PauseFeatureUpdates" /f >nul 2>&1
-reg delete "HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" /v "PauseQualityUpdates" /f >nul 2>&1
-reg delete "HKLM\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" /v "PauseUpdatesExpiryTime" /f >nul 2>&1
-
-:: æ¢å¤æ›´æ–°ç­–ç•¥
-reg delete "HKLM\SOFTWARE\Microsoft\WindowsUpdate\UpdatePolicy\Settings" /v "PausedFeatureStatus" /f >nul 2>&1
-reg delete "HKLM\SOFTWARE\Microsoft\WindowsUpdate\UpdatePolicy\Settings" /v "PausedQualityStatus" /f >nul 2>&1
-
-echo æ­£åœ¨é‡å¯æ›´æ–°æœåŠ¡...
-sc config wuauserv start= demand >nul 2>&1
-sc config UsoSvc start= demand >nul 2>&1
+echo  ÕýÔÚÇå³ýÈ«²¿ÉèÖÃ...
+call :clear_legacy
+reg delete "%CFGKEY%" /f >nul 2>&1
+reg delete "HKLM\SOFTWARE\WinOpt" /f >nul 2>&1
+call :repair_services
 net start wuauserv >nul 2>&1
-net start UsoSvc >nul 2>&1
-
+net start bits >nul 2>&1
+gpupdate /target:computer /force /wait:20 >nul 2>&1
 color 2F
-echo ========================================
-echo     å·²æ¢å¤Windowsæ›´æ–°åŠŸèƒ½ï¼
-echo ========================================
 echo.
-echo æ›´æ–°æœåŠ¡å·²é‡æ–°å¯ç”¨
+echo   ÒÑ»Ö¸´ Windows ¸üÐÂ¡£
 echo.
-timeout /t 3 >nul
+echo  °´ÈÎÒâ¼ü·µ»Ø...
+pause >nul
 color 0A
+goto update_menu
 
-:after_resume
+:: ------------------------------------------------------------
+::  ²é¿´µ±Ç°×´Ì¬£¨Ö»¶Á£©
+:: ------------------------------------------------------------
+:show_status
 cls
 echo ========================================
-echo           æ“ä½œå®Œæˆ
+echo              µ±Ç° Windows ¸üÐÂ×´Ì¬
 echo ========================================
 echo.
-echo è¯·é€‰æ‹©ä¸‹ä¸€æ­¥æ“ä½œï¼š
+echo [ÔÝÍ£ÅäÖÃ] %UXKEY%
+reg query "%UXKEY%" 2>nul | findstr /i /c:"Pause" /c:"FlightSettingsMaxPauseDays"
+if errorlevel 1 echo    £¨Î´ÅäÖÃ£©
 echo.
-echo   1. è¿”å›žæ›´æ–°æŽ§åˆ¶èœå•
+echo [ÑÓÆÚ²ßÂÔÓë°æ±¾Ëø¶¨] %POLKEY%
+reg query "%POLKEY%" 2>nul | findstr /i /c:"Defer" /c:"TargetReleaseVersion"
+if errorlevel 1 echo    £¨Î´ÅäÖÃ£©
 echo.
-echo   2. è¿”å›žä¸»èœå•
-echo.
-echo   3. é€€å‡ºç¨‹åº
-echo.
-echo ========================================
-set /p next_choice=è¯·è¾“å…¥é€‰æ‹©ï¼ˆ1-3ï¼‰: 
+echo  °´ÈÎÒâ¼ü·µ»Ø...
+pause >nul
+goto update_menu
 
-if "%next_choice%"=="1" goto windows_pause_update
-if "%next_choice%"=="2" goto main
-if "%next_choice%"=="3" goto exit
-echo è¾“å…¥æ— æ•ˆï¼Œè¯·é‡æ–°è¾“å…¥ï¼
-timeout /t 2 >nul
-goto after_resume
+:: ------------------------------------------------------------
+::  ¹«¹²×Ó³ÌÐò
+:: ------------------------------------------------------------
+:clear_legacy
+for %%N in (PauseUpdatesStartTime PauseUpdatesExpiryTime PauseFeatureUpdatesStartTime PauseFeatureUpdatesEndTime PauseQualityUpdatesStartTime PauseQualityUpdatesEndTime FlightSettingsMaxPauseDays PauseFeatureUpdates PauseQualityUpdates) do reg delete "%UXKEY%" /v %%N /f >nul 2>&1
+for %%N in (PausedFeatureStatus PausedQualityStatus) do reg delete "%LEGAKEY%" /v %%N /f >nul 2>&1
+for %%N in (DeferFeatureUpdates DeferFeatureUpdatesPeriodInDays DeferQualityUpdates DeferQualityUpdatesPeriodInDays PauseFeatureUpdatesStartTime PauseQualityUpdatesStartTime TargetReleaseVersion TargetReleaseVersionInfo) do reg delete "%POLKEY%" /v %%N /f >nul 2>&1
+goto :eof
+
+:repair_services
+for %%S in (wuauserv UsoSvc bits WaaSMedicSvc) do call :fix_service %%S
+goto :eof
+
+:fix_service
+set "SVSTART="
+for /f "tokens=3" %%V in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\%~1" /v Start 2^>nul ^| findstr /i "REG_DWORD"') do set "SVSTART=%%V"
+if not defined SVSTART goto :eof
+if /i not "!SVSTART!"=="0x4" goto :eof
+sc.exe config "%~1" start= demand >nul 2>&1
+goto :eof
 
 :exit
 cls
 echo ========================================
-echo           ç¨‹åºé€€å‡º
+echo                   ³ÌÐòÍË³ö
 echo ========================================
 echo.
-echo æ„Ÿè°¢ä½¿ç”¨ç³»ç»Ÿæ¿€æ´»ä¸Žæ›´æ–°æŽ§åˆ¶ç¨‹åºï¼
+echo   ¸ÐÐ»Ê¹ÓÃÏµÍ³¼¤»îÓë¸üÐÂ¿ØÖÆ³ÌÐò£¡
 echo.
-echo æŒ‰ä»»æ„é”®é€€å‡º...
+echo   °´ÈÎÒâ¼üÍË³ö...
 pause >nul
-exit
+endlocal
+exit /b 0
